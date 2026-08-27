@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt">
+
+<!-- Mirrored from praia-booking-1.preview.emergentagent.com/atendente.html by HTTrack Website Copier/3.x [XR&CO'2014], Thu, 27 Aug 2026 13:54:08 GMT -->
+<!-- Added by HTTrack --><meta http-equiv="content-type" content="text/html;charset=UTF-8" /><!-- /Added by HTTrack -->
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Portal Atendente · Praia de Buarcos</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css" />
+<script src="../unpkg.com/html5-qrcode%402.3.8/html5-qrcode.min.js"></script>
+</head>
+<body>
+
+<header class="nav">
+  <div class="container nav-inner">
+    <a href="index.html" class="nav-logo"><img src="logo.svg" alt="logo" /></a>
+    <div class="nav-cta">
+      <span style="color:var(--muted);font-size:13.5px" id="attName"></span>
+      <button class="btn btn-ghost btn-sm" onclick="logoutAtt()">Sair</button>
+    </div>
+  </div>
+</header>
+
+<div class="kiosk">
+  <div class="kiosk-head">
+    <h1>Portal do Atendente</h1>
+    <div class="meta">
+      <div class="chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><span id="clock" class="lg">--:--:--</span></div>
+      <div class="chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span id="today"></span></div>
+      <div class="chip temp"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4 4 0 1 0 5 0z"/></svg><span id="temp">— °C</span> · <span id="weather" style="font-weight:500;color:var(--muted)">Buarcos</span></div>
+    </div>
+  </div>
+
+  <div class="kiosk-grid">
+    <div class="card">
+      <h3>📷 Scanner de QR</h3>
+      <p class="card-sub">Aponte a câmara para o cartão digital do utilizador.</p>
+      <div id="reader"></div>
+      <div class="scanner-actions">
+        <button class="btn btn-primary btn-sm" id="btnStart">Iniciar scanner</button>
+        <button class="btn btn-outline btn-sm" id="btnStop">Parar</button>
+        <button class="btn btn-ghost btn-sm" id="btnPaste">Colar código (teste)</button>
+      </div>
+      <div class="result-panel" id="result">
+        <p style="color:var(--muted);font-size:14px">Aguardando leitura de QR…</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🏟️ Estado das quadras — hoje</h3>
+      <p class="card-sub">Reservas activas nas próximas 2 horas.</p>
+      <div class="status-list" id="statusList"></div>
+      <div style="margin-top:18px;padding:14px;background:var(--bg-soft);border-radius:10px;font-size:13px;color:var(--muted)">
+        <strong style="color:var(--ink)">Total hoje:</strong> <span id="totalToday">0</span> reservas · <strong style="color:var(--success)">Validadas:</strong> <span id="totalValid">0</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script>
+const att=requireAttendant();
+if(att){
+  document.getElementById('attName').textContent='👤 '+att.name;
+
+  // Clock
+  function tick(){
+    const d=new Date();
+    document.getElementById('clock').textContent=d.toLocaleTimeString('pt-PT');
+    document.getElementById('today').textContent=d.toLocaleDateString('pt-PT',{weekday:'long',day:'2-digit',month:'short'});
+  }
+  tick();setInterval(tick,1000);
+
+  // Weather (open-meteo, Figueira da Foz)
+  async function weather(){
+    try{
+      const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=40.15&amp;longitude=-8.87&amp;current=temperature_2m,weather_code&amp;timezone=Europe/Lisbon');
+      const j=await r.json();
+      const t=Math.round(j.current.temperature_2m);
+      document.getElementById('temp').textContent=t+' °C';
+      const codes={0:'Céu limpo',1:'Pouco nublado',2:'Parcialmente nublado',3:'Nublado',45:'Nevoeiro',48:'Nevoeiro',51:'Chuvisco leve',53:'Chuvisco',55:'Chuvisco forte',61:'Chuva leve',63:'Chuva',65:'Chuva forte',80:'Aguaceiros',95:'Trovoada'};
+      document.getElementById('weather').textContent=(codes[j.current.weather_code]||'Buarcos')+' · Buarcos';
+    }catch(e){document.getElementById('temp').textContent='22 °C'}
+  }
+  weather();setInterval(weather,300000);
+
+  // Status list
+  function renderStatus(){
+    const today=new Date().toISOString().slice(0,10);
+    const items=DB.bookings.all().filter(b=>b.date===today && b.status!=='cancelled');
+    const list=document.getElementById('statusList');
+    list.innerHTML=Object.entries(SPORTS).map(([key,s])=>{
+      const active=items.filter(b=>b.sport===key);
+      const now=new Date();const curMin=now.getHours()*60+now.getMinutes();
+      const busy=active.some(b=>{const [h,m]=b.time.split(':').map(Number);const bm=h*60+m;return Math.abs(bm-curMin)<60 && b.status==='validated'});
+      return '<div class="status-row"><div class="sic">'+s.icon+'</div><div class="sn">'+s.name+'<small>'+active.length+' reservas hoje</small></div><div class="status-tag '+(busy?'busy':'free')+'">'+(busy?'Em uso':'Livre')+'</div></div>';
+    }).join('');
+    document.getElementById('totalToday').textContent=items.length;
+    document.getElementById('totalValid').textContent=items.filter(b=>b.status==='validated').length;
+  }
+  renderStatus();setInterval(renderStatus,10000);
+
+  // QR Scanner
+  const reader=new Html5Qrcode('reader');
+  let scanning=false;
+  async function startScan(){
+    if(scanning)return;
+    try{
+      await reader.start({facingMode:'environment'},{fps:10,qrbox:{width:260,height:260}},onScan,()=>{});
+      scanning=true;
+    }catch(e){
+      toast('Não foi possível aceder à câmara: '+e,'error');
+    }
+  }
+  async function stopScan(){if(!scanning)return;try{await reader.stop();scanning=false}catch(e){}}
+
+  document.getElementById('btnStart').onclick=startScan;
+  document.getElementById('btnStop').onclick=stopScan;
+  document.getElementById('btnPaste').onclick=()=>{
+    const v=prompt('Cole o payload do QR:');
+    if(v)onScan(v);
+  };
+
+  function onScan(text){
+    let data;try{data=JSON.parse(text)}catch(e){return showResult(null,'QR inválido (formato desconhecido).')}
+    const u=DB.users.byId(data.user_id);
+    if(!u)return showResult(null,'Utilizador não encontrado.');
+    const b=data.booking_id?DB.bookings.byId(data.booking_id):null;
+    if(!b)return showResult(u,'Utilizador sem reserva activa.');
+    if(b.status==='cancelled')return showResult(u,'Reserva foi cancelada.',b);
+    // check date within tolerance (same day)
+    const today=new Date().toISOString().slice(0,10);
+    if(b.date!==today)return showResult(u,'Reserva não é para hoje ('+fmtDate(b.date)+').',b);
+
+    // Valid — auto validate
+    if(b.status==='pending'){DB.bookings.update(b.id,{status:'validated',validated_at:now(),validated_by:att.id})}
+    stopScan();
+    showResult(u,null,DB.bookings.byId(b.id));
+    renderStatus();
+  }
+
+  function showResult(u,error,b){
+    const p=document.getElementById('result');
+    if(error){
+      p.className='result-panel invalid';
+      p.innerHTML='<h4>✗ '+error+'</h4>'+(u?'<div class="rows"><div><div class="k">Nome</div><div class="v">'+u.name+'</div></div><div><div class="k">Documento</div><div class="v">'+(DOC_TYPES[u.doc_type]||'')+'</div></div></div>':'');
+      return;
+    }
+    p.className='result-panel valid';
+    const s=SPORTS[b.sport];
+    p.innerHTML='<h4>✓ Acesso validado</h4>'
+      +'<div style="display:flex;gap:14px;align-items:center;margin-bottom:14px">'
+      +'<div style="width:56px;height:56px;border-radius:50%;overflow:hidden;background:var(--primary-50);color:var(--primary);display:flex;align-items:center;justify-content:center;font-weight:800">'+(u.photo?'<img src="'+u.photo+'" style="width:100%;height:100%;object-fit:cover"/>':initials(u.name))+'</div>'
+      +'<div><div style="font-weight:800;font-size:16px">'+u.name+'</div><div style="color:var(--muted);font-size:13px">'+u.email+'</div></div>'
+      +'</div>'
+      +'<div class="rows">'
+      +'<div><div class="k">Esporte</div><div class="v">'+s.icon+' '+s.name+'</div></div>'
+      +'<div><div class="k">Data/Hora</div><div class="v">'+fmtDate(b.date)+' · '+b.time+'</div></div>'
+      +'<div><div class="k">Documento</div><div class="v">'+DOC_TYPES[u.doc_type]+'</div></div>'
+      +'<div><div class="k">Nº</div><div class="v">'+u.doc_number+'</div></div>'
+      +'</div>'
+      +'<div class="validated-badge">✓ Validado às '+new Date().toLocaleTimeString('pt-PT')+'</div>';
+    toast('Acesso validado — '+u.name.split(' ')[0],'success');
+  }
+}
+window.logoutAtt=()=>{DB.attendantSession.clear();location.href='index.html'};
+</script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a31b90e0fe6f8672',t:'MTc4NzgzODg0Mw=='};var a=document.createElement('script');a.src='cdn-cgi/challenge-platform/h/g/scripts/jsd/94f8cd788239/maind41d.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"7f7b0fd8732c4326aae4b9d58d5c514a"}' crossorigin="anonymous"></script>
+</body>
+
+<!-- Mirrored from praia-booking-1.preview.emergentagent.com/atendente.html by HTTrack Website Copier/3.x [XR&CO'2014], Thu, 27 Aug 2026 13:54:09 GMT -->
+</html>

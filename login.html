@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pt">
+
+<!-- Mirrored from praia-booking-1.preview.emergentagent.com/login.html by HTTrack Website Copier/3.x [XR&CO'2014], Thu, 27 Aug 2026 13:54:07 GMT -->
+<!-- Added by HTTrack --><meta http-equiv="content-type" content="text/html;charset=UTF-8" /><!-- /Added by HTTrack -->
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Entrar · Complexo Desportivo Praia de Buarcos</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<header class="nav">
+  <div class="container nav-inner">
+    <a href="index.html" class="nav-logo"><img src="logo.svg" alt="logo" /></a>
+    <div class="nav-cta">
+      <span style="color:var(--muted);font-size:14px">Novo por aqui?</span>
+      <a href="registrar.html" class="btn btn-primary btn-sm">Criar conta</a>
+    </div>
+  </div>
+</header>
+
+<div class="auth-wrap">
+  <aside class="auth-side">
+    <div>
+      <h2 id="sideTitle">Bem-vindo(a) de volta.</h2>
+      <p id="sideText">Aceda ao seu cartão digital e agende o próximo jogo em segundos.</p>
+      <ul class="bullets" id="sideList">
+        <li>✓ Reservas em 30 segundos</li>
+        <li>✓ Cartão digital com QR único</li>
+        <li>✓ Histórico de agendamentos</li>
+      </ul>
+    </div>
+    <small style="opacity:.75;position:relative;z-index:1">Câmara Municipal da Figueira da Foz</small>
+  </aside>
+
+  <div class="auth-form">
+    <div class="auth-card">
+      <div style="display:flex;gap:8px;background:var(--bg-soft);padding:5px;border-radius:12px;margin-bottom:24px">
+        <button class="btn btn-sm" id="tabUser" style="flex:1;border-radius:8px">Utilizador</button>
+        <button class="btn btn-sm" id="tabAtt" style="flex:1;border-radius:8px">Atendente</button>
+      </div>
+
+      <h1 id="formTitle">Entrar</h1>
+      <p class="sub" id="formSub">Aceda à sua conta para agendar e ver o cartão digital.</p>
+
+      <div id="err" class="error"></div>
+
+      <form id="loginForm">
+        <div class="field">
+          <label>E-mail</label>
+          <input id="email" type="email" required placeholder="seu@email.com" />
+        </div>
+        <div class="field">
+          <label>Senha</label>
+          <input id="password" type="password" required placeholder="••••••••" />
+        </div>
+
+        <button class="btn btn-primary btn-block btn-lg" type="submit" style="margin-top:8px">Entrar</button>
+      </form>
+
+      <div id="testUsers" style="margin-top:22px;padding:14px;background:var(--bg-soft);border-radius:10px;font-size:13px;color:var(--muted);line-height:1.7">
+        <strong style="color:var(--ink);display:block;margin-bottom:6px">👤 Utilizadores de teste:</strong>
+        <code>maria@teste.pt</code> / <code>123456</code><br/>
+        <code>joao@teste.pt</code> / <code>123456</code>
+      </div>
+      <div id="testAtt" style="margin-top:22px;padding:14px;background:var(--bg-soft);border-radius:10px;font-size:13px;color:var(--muted);line-height:1.7;display:none">
+        <strong style="color:var(--ink);display:block;margin-bottom:6px">🎯 Atendentes de teste:</strong>
+        <code>ana@buarcos.pt</code> / <code>atendente123</code><br/>
+        <code>pedro@buarcos.pt</code> / <code>atendente123</code>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script>
+const params=new URLSearchParams(location.search);
+let mode=params.get('attendant')==='1'?'att':'user';
+
+function setMode(m){
+  mode=m;
+  const isAtt=m==='att';
+  document.getElementById('tabUser').className='btn btn-sm '+(isAtt?'btn-ghost':'btn-primary');
+  document.getElementById('tabAtt').className='btn btn-sm '+(isAtt?'btn-primary':'btn-ghost');
+  document.getElementById('sideTitle').textContent=isAtt?'Portal do Atendente.':'Bem-vindo(a) de volta.';
+  document.getElementById('sideText').textContent=isAtt?'Scanner de QR e estado das quadras em tempo real.':'Aceda ao seu cartão digital e agende o próximo jogo em segundos.';
+  document.getElementById('sideList').innerHTML=isAtt?'<li>✓ Scanner por câmara</li><li>✓ Estado das quadras ao vivo</li><li>✓ Validação instantânea</li>':'<li>✓ Reservas em 30 segundos</li><li>✓ Cartão digital com QR único</li><li>✓ Histórico de agendamentos</li>';
+  document.getElementById('formTitle').textContent=isAtt?'Entrar (Atendente)':'Entrar';
+  document.getElementById('formSub').textContent=isAtt?'Área restrita — apenas para atendentes autorizados.':'Aceda à sua conta para agendar e ver o cartão digital.';
+  document.getElementById('testUsers').style.display=isAtt?'none':'block';
+  document.getElementById('testAtt').style.display=isAtt?'block':'none';
+}
+document.getElementById('tabUser').onclick=()=>setMode('user');
+document.getElementById('tabAtt').onclick=()=>setMode('att');
+setMode(mode);
+
+document.getElementById('loginForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const err=document.getElementById('err');err.classList.remove('show');
+  const email=document.getElementById('email').value.trim().toLowerCase();
+  const password=document.getElementById('password').value;
+
+  if(mode==='att'){
+    const a=DB.attendants.byEmail(email);
+    if(!a||a.password!==password){err.textContent='Credenciais de atendente inválidas.';err.classList.add('show');return}
+    DB.attendantSession.set(a);
+    toast('Sessão de atendente iniciada','success');
+    setTimeout(()=>location.href='atendente.html',500);
+  } else {
+    const u=DB.users.byEmail(email);
+    if(!u||u.password!==password){err.textContent='E-mail ou senha inválidos.';err.classList.add('show');return}
+    DB.session.set(u);
+    toast('Bem-vindo(a), '+u.name.split(' ')[0]+'!','success');
+    setTimeout(()=>location.href='dashboard.html',500);
+  }
+});
+</script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a31b90c96ca5e6de',t:'MTc4NzgzODgzOQ=='};var a=document.createElement('script');a.src='cdn-cgi/challenge-platform/h/g/scripts/jsd/94f8cd788239/maind41d.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"7f7b0fd8732c4326aae4b9d58d5c514a"}' crossorigin="anonymous"></script>
+</body>
+
+<!-- Mirrored from praia-booking-1.preview.emergentagent.com/login.html by HTTrack Website Copier/3.x [XR&CO'2014], Thu, 27 Aug 2026 13:54:08 GMT -->
+</html>

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt">
+
+<!-- Mirrored from praia-booking-1.preview.emergentagent.com/registrar.html by HTTrack Website Copier/3.x [XR&CO'2014], Thu, 27 Aug 2026 13:54:08 GMT -->
+<!-- Added by HTTrack --><meta http-equiv="content-type" content="text/html;charset=UTF-8" /><!-- /Added by HTTrack -->
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Criar conta · Complexo Desportivo Praia de Buarcos</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<header class="nav">
+  <div class="container nav-inner">
+    <a href="index.html" class="nav-logo"><img src="logo.svg" alt="logo" /></a>
+    <div class="nav-cta">
+      <span style="color:var(--muted);font-size:14px">Já tem conta?</span>
+      <a href="login.html" class="btn btn-outline btn-sm">Entrar</a>
+    </div>
+  </div>
+</header>
+
+<div class="auth-wrap">
+  <aside class="auth-side">
+    <div>
+      <h2>Um cartão digital que abre todas as quadras.</h2>
+      <p>Chega de filas na receção. Crie sua conta em minutos e comece a jogar hoje mesmo.</p>
+      <ul class="bullets">
+        <li>✓ Mini-golfe, Golfe, Driving Range e Padel</li>
+        <li>✓ Equipamentos incluídos, tudo gratuito</li>
+        <li>✓ QR Code exclusivo, sem papéis</li>
+        <li>✓ Notificações opcionais por e-mail/SMS</li>
+      </ul>
+    </div>
+    <small style="opacity:.75;position:relative;z-index:1">Câmara Municipal da Figueira da Foz</small>
+  </aside>
+
+  <div class="auth-form">
+    <div class="auth-card">
+      <h1>Criar conta</h1>
+      <p class="sub">Preencha seus dados para gerar seu cartão digital.</p>
+
+      <div id="err" class="error"></div>
+
+      <form id="registerForm">
+        <div class="avatar-upload" onclick="document.getElementById('photoInput').click()">
+          <div class="avatar-preview" id="avatarPreview">?</div>
+          <div class="txt">
+            <strong>Adicionar foto</strong>
+            <small>Aparecerá no seu cartão digital</small>
+          </div>
+          <input type="file" id="photoInput" accept="image/*" style="display:none" />
+        </div>
+
+        <div class="field" style="margin-top:16px">
+          <label>Nome completo *</label>
+          <input id="name" type="text" required placeholder="Ex: Maria Silva" />
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label>E-mail *</label>
+            <input id="email" type="email" required placeholder="seu@email.com" />
+          </div>
+          <div class="field">
+            <label>Telefone / WhatsApp</label>
+            <input id="phone" type="tel" placeholder="+351 9…" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Senha *</label>
+          <input id="password" type="password" required minlength="6" placeholder="Mínimo 6 caracteres" />
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label>Tipo de documento *</label>
+            <select id="doc_type" required>
+              <option value="">Selecione…</option>
+              <option value="cartao_cidadao">Cartão Cidadão Português</option>
+              <option value="titulo_residencia">Título de Residência</option>
+              <option value="passaporte">Passaporte</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Nº do documento *</label>
+            <input id="doc_number" type="text" required placeholder="Ex: 12345678" />
+          </div>
+        </div>
+
+        <div class="checkbox">
+          <input type="checkbox" id="lgpd" required />
+          <label for="lgpd">Aceito o <a href="#">tratamento dos meus dados</a> conforme o RGPD/LGPD para efeitos de gestão de reservas. *</label>
+        </div>
+        <div class="checkbox">
+          <input type="checkbox" id="marketing" />
+          <label for="marketing">Quero receber novidades e lembretes por e-mail, SMS ou WhatsApp.</label>
+        </div>
+
+        <button class="btn btn-primary btn-block btn-lg" type="submit" style="margin-top:20px">Criar minha conta</button>
+
+        <div class="divider">ou</div>
+        <a href="login.html" class="btn btn-outline btn-block">Já tenho conta — entrar</a>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script>
+let photoData=null;
+document.getElementById('photoInput').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{photoData=ev.target.result;document.getElementById('avatarPreview').innerHTML='<img src="'+photoData+'"/>'};
+  r.readAsDataURL(f);
+});
+
+document.getElementById('registerForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const err=document.getElementById('err'); err.classList.remove('show');
+  const name=document.getElementById('name').value.trim();
+  const email=document.getElementById('email').value.trim().toLowerCase();
+  const phone=document.getElementById('phone').value.trim();
+  const password=document.getElementById('password').value;
+  const doc_type=document.getElementById('doc_type').value;
+  const doc_number=document.getElementById('doc_number').value.trim();
+  const accept_lgpd=document.getElementById('lgpd').checked;
+  const accept_marketing=document.getElementById('marketing').checked;
+
+  if(!accept_lgpd){err.textContent='É necessário aceitar o tratamento de dados (RGPD/LGPD).';err.classList.add('show');return}
+  if(DB.users.byEmail(email)){err.textContent='Este e-mail já está registado. Faça login.';err.classList.add('show');return}
+
+  const user={id:uid(),name,email,phone,password,doc_type,doc_number,photo:photoData,accept_lgpd,accept_marketing,created_at:now()};
+  DB.users.insert(user);
+  DB.session.set(user);
+  toast('Conta criada! Bem-vindo(a), '+name.split(' ')[0]+'.','success');
+  setTimeout(()=>location.href='dashboard.html',700);
+});
+</script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a31b90cb1d2de6de',t:'MTc4NzgzODgzOQ=='};var a=document.createElement('script');a.src='cdn-cgi/challenge-platform/h/g/scripts/jsd/94f8cd788239/maind41d.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"7f7b0fd8732c4326aae4b9d58d5c514a"}' crossorigin="anonymous"></script>
+</body>
+
+<!-- Mirrored from praia-booking-1.preview.emergentagent.com/registrar.html by HTTrack Website Copier/3.x [XR&CO'2014], Thu, 27 Aug 2026 13:54:08 GMT -->
+</html>
